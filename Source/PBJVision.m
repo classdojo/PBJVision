@@ -433,6 +433,7 @@ typedef NS_ENUM(GLint, PBJVisionUniformLocationTypes)
         [self setMirroringMode:_mirroringMode];
         
         [self _enqueueBlockOnMainQueue:didChangeBlock];
+        [self setFlashMode:self.flashMode forceUpdate:YES];
     }];
 }
 
@@ -527,10 +528,14 @@ typedef NS_ENUM(GLint, PBJVisionUniformLocationTypes)
 {
     return (_currentDevice && [_currentDevice hasFlash]);
 }
+- (void)setFlashMode:(PBJFlashMode)flashMode {
+    
+    [self setFlashMode:flashMode forceUpdate:NO];
+}
 
-- (void)setFlashMode:(PBJFlashMode)flashMode
-{
-    BOOL shouldChangeFlashMode = (_flashMode != flashMode);
+- (void)setFlashMode:(PBJFlashMode)flashMode forceUpdate:(BOOL)forceUpdate {
+    
+    BOOL shouldChangeFlashMode = (_flashMode != flashMode) || forceUpdate ;
     if (![_currentDevice hasFlash] || !shouldChangeFlashMode)
         return;
 
@@ -1558,15 +1563,15 @@ typedef void (^PBJVisionBlock)();
     if ([_delegate respondsToSelector:@selector(visionWillCapturePhoto:)]) {
         [_delegate visionWillCapturePhoto:self];
     }
-    if (_autoFreezePreviewDuringCapture) {
-        [self freezePreview];
-    }
 }
 
 - (void)_didCapturePhoto
 {
     if ([_delegate respondsToSelector:@selector(visionDidCapturePhoto:)]) {
         [_delegate visionDidCapturePhoto:self];
+    }
+    if (_autoFreezePreviewDuringCapture) {
+        [self freezePreview];
     }
     DLog(@"did capture photo");
 }
@@ -1732,7 +1737,7 @@ typedef void (^PBJVisionBlock)();
     if ([AVCapturePhotoOutput class]) {
         AVCapturePhotoSettings *settings = [AVCapturePhotoSettings photoSettingsWithFormat:@{AVVideoCodecKey : AVVideoCodecJPEG}];
         settings.highResolutionPhotoEnabled = YES;
-        settings.flashMode = AVCaptureFlashModeOn;
+        settings.flashMode = (AVCaptureFlashMode)self.flashMode;
         
         [_captureOutputPhoto capturePhotoWithSettings:settings delegate:self];
     }
